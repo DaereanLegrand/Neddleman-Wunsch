@@ -1,5 +1,5 @@
 Bacteria
-`	1 tcaagcgtta gagaagtcat tatgtgataa aaaaattcaa cttggtatca acttaactaa
+		1 tcaagcgtta gagaagtcat tatgtgataa aaaaattcaa cttggtatca acttaactaa
        61 gggtcttggt gctggtgctt tgcctgatgt tggtaaaggt gcagcagaag aatcaattga
       121 tgaaattatg gagcatataa aagatagcca tatgctcttt atcacagcag ggatgggtgg
       181 tggtactgga acaggtgctg caccggtaat tgcaaaagca gccagagaag caagagcggt
@@ -20,7 +20,7 @@ Bacteria
 
 
 Sars-Cov
- 	1 attaaaggtt tataccttcc caggtaacaa accaaccaac tttcgatctc ttgtagatct
+ 		1 attaaaggtt tataccttcc caggtaacaa accaaccaac tttcgatctc ttgtagatct
        61 gttctctaaa cgaactttaa aatctgtgtg gctgtcactc ggctgcatgc ttagtgcact
       121 cacgcagtat aattaataac taattactgt cgttgacagg acacgagtaa ctcgtctatc
       181 ttctgcaggc tgcttacggt ttcgtccgtg ttgcagccga tcatcagcac atctaggttt
