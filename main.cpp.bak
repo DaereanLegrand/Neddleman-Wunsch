@@ -6,8 +6,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <tuple>
-#include <stack>
 #include <omp.h>
 
 int 
@@ -24,6 +22,32 @@ printTable(const std::vector<std::vector<int>>& scoreTable)
             printf(" %3d \t", j);
         }
         printf("\n");
+    }
+}
+
+
+void traceback(const std::vector<std::vector<int>>& scoreTable, const std::string& a, const std::string& b, 
+               int i, int j, std::string currentAlignmentA, std::string currentAlignmentB, 
+               std::vector<std::pair<std::string, std::string>>& alignments) {
+    std::cout << "Traceback: i = " << i << ", j = " << j << std::endl;
+
+    if (i == 0 && j == 0) {
+        std::reverse(currentAlignmentA.begin(), currentAlignmentA.end());
+        std::reverse(currentAlignmentB.begin(), currentAlignmentB.end());
+        alignments.push_back({currentAlignmentA, currentAlignmentB});
+        return;
+    }
+
+    if (i > 0 && j > 0 && scoreTable[i][j] == scoreTable[i - 1][j - 1] + ((a[i - 1] == b[j - 1]) ? 1 : -1)) {
+        traceback(scoreTable, a, b, i - 1, j - 1, currentAlignmentA + a[i - 1], currentAlignmentB + b[j - 1], alignments);
+    }
+
+    if (i > 0 && scoreTable[i][j] == scoreTable[i - 1][j] - 2) {
+        traceback(scoreTable, a, b, i - 1, j, currentAlignmentA + a[i - 1], currentAlignmentB + "-", alignments);
+    }
+
+    if (j > 0 && scoreTable[i][j] == scoreTable[i][j - 1] - 2) {
+        traceback(scoreTable, a, b, i, j - 1, currentAlignmentA + "-", currentAlignmentB + b[j - 1], alignments);
     }
 }
 
@@ -61,41 +85,8 @@ readSequencesFromFile(const char *filename, std::vector<std::string>& sequences)
     fclose(file);
 }
 
-void 
-traceback(const std::vector<std::vector<int>>& scoreTable, const std::string& a, const std::string& b, 
-               int startI, int startJ, std::vector<std::pair<std::string, std::string>>& alignments) {
-    std::stack<std::tuple<int, int, std::string, std::string>> stk;
-    stk.push(std::make_tuple(startI, startJ, "", ""));
-
-    while (!stk.empty()) {
-        auto [i, j, currentAlignmentA, currentAlignmentB] = stk.top();
-        stk.pop();
-
-        if (i == 0 && j == 0) {
-            std::string finalAlignmentA = currentAlignmentA;
-            std::string finalAlignmentB = currentAlignmentB;
-            std::reverse(finalAlignmentA.begin(), finalAlignmentA.end());
-            std::reverse(finalAlignmentB.begin(), finalAlignmentB.end());
-            alignments.push_back({finalAlignmentA, finalAlignmentB});
-            continue;
-        }
-
-        if (i > 0 && j > 0 && scoreTable[i][j] == scoreTable[i - 1][j - 1] + ((a[i - 1] == b[j - 1]) ? 1 : -1)) {
-            stk.push(std::make_tuple(i - 1, j - 1, currentAlignmentA + a[i - 1], currentAlignmentB + b[j - 1]));
-        }
-
-        if (i > 0 && scoreTable[i][j] == scoreTable[i - 1][j] - 2) {
-            stk.push(std::make_tuple(i - 1, j, currentAlignmentA + a[i - 1], currentAlignmentB + "-"));
-        }
-
-        if (j > 0 && scoreTable[i][j] == scoreTable[i][j - 1] - 2) {
-            stk.push(std::make_tuple(i, j - 1, currentAlignmentA + "-", currentAlignmentB + b[j - 1]));
-        }
-    }
-}
-
 int
-getAlignmentCount(const std::string& a, const std::string& b, bool bPrinting) {
+getAlignmentCount(const std::string& a, const std::string& b) {
     int aSize = a.length() + 1;
     int bSize = b.length() + 1;
 
@@ -123,7 +114,7 @@ getAlignmentCount(const std::string& a, const std::string& b, bool bPrinting) {
             i += 1;
             j += 1;
 
-            if (i == 0 || j == 0) continue;
+            if (i <= 0 || j <= 0 || i >= aSize || j >= bSize) continue;
 
             int matchScore = (a[i - 1] == b[j - 1]) ? 1 : -1;
             int diag = scoreTable[i - 1][j - 1] + matchScore;
@@ -136,18 +127,17 @@ getAlignmentCount(const std::string& a, const std::string& b, bool bPrinting) {
         }
     }
 
+    //printTable(scoreTable);
+    return 1;
 
-    std::vector<std::pair<std::string, std::string>> alignments;
-    traceback(scoreTable, a, b, aSize - 1, bSize - 1, alignments);
+    //std::vector<std::pair<std::string, std::string>> alignments;
+    //traceback(scoreTable, a, b, aSize - 1, bSize - 1, "", "", alignments);
 
-    if (bPrinting) {
-        printTable(scoreTable);
-        for (const auto& alignment : alignments) {
-            std::cout << "Alignment 1:\n" << alignment.first << "\n" << alignment.second << "\n";
-        }
-    }
+    //for (const auto& alignment : alignments) {
+    //    std::cout << "Alignment 1:\n" << alignment.first << "\n" << alignment.second << "\n";
+    // }
 
-    return alignments.size();
+    //return alignments.size();
 }
 
 int main(int argc, char *argv[]) {
@@ -164,31 +154,34 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    std::cout << "Sample AAAC and AGC: \n" << getAlignmentCount("AAAC", "AGC", 1) << std::endl;
+    std::cout << "Sample AAAC and AGC: \n" << getAlignmentCount("AAAC", "AGC") << std::endl;
     
     std::cout << "Bacteria: " << sequences[0].size() << std::endl;
     std::cout << "Sars-Cov: " << sequences[1].size() << std::endl;
     std::cout << "Influenza: " << sequences[2].size() << std::endl;
 
+    /*
     double start = omp_get_wtime();
-    int alignmentCount = getAlignmentCount(sequences[0], sequences[1], 0);
+    int alignmentCount = getAlignmentCount(sequences[0], sequences[1]);
     double end = omp_get_wtime();
 
     std::cout << "Count of alignments: " << alignmentCount << std::endl;
     std::cout << "Elapsed time: " << (end - start) << " seconds" << std::endl;
 
     start = omp_get_wtime();
-    alignmentCount = getAlignmentCount(sequences[1], sequences[2], 0);
+    alignmentCount = getAlignmentCount(sequences[1], sequences[2]);
     end = omp_get_wtime();
 
     std::cout << "Count of alignments: " << alignmentCount << std::endl;
     std::cout << "Elapsed time: " << (end - start) << " seconds" << std::endl;
 
     start = omp_get_wtime();
-    alignmentCount = getAlignmentCount(sequences[0], sequences[2], 0);
+    alignmentCount = getAlignmentCount(sequences[0], sequences[2]);
     end = omp_get_wtime();
 
     std::cout << "Count of alignments: " << alignmentCount << std::endl;
     std::cout << "Elapsed time: " << (end - start) << " seconds" << std::endl;
+    */
+
     return 0;
 }

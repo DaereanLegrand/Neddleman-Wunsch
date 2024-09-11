@@ -6,8 +6,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <tuple>
-#include <stack>
 #include <omp.h>
 
 int 
@@ -63,34 +61,25 @@ readSequencesFromFile(const char *filename, std::vector<std::string>& sequences)
 
 void 
 traceback(const std::vector<std::vector<int>>& scoreTable, const std::string& a, const std::string& b, 
-               int startI, int startJ, std::vector<std::pair<std::string, std::string>>& alignments) {
-    std::stack<std::tuple<int, int, std::string, std::string>> stk;
-    stk.push(std::make_tuple(startI, startJ, "", ""));
+               int i, int j, std::string currentAlignmentA, std::string currentAlignmentB, 
+               std::vector<std::pair<std::string, std::string>>& alignments) {
+    if (i == 0 && j == 0) {
+        std::reverse(currentAlignmentA.begin(), currentAlignmentA.end());
+        std::reverse(currentAlignmentB.begin(), currentAlignmentB.end());
+        alignments.push_back({currentAlignmentA, currentAlignmentB});
+        return;
+    }
 
-    while (!stk.empty()) {
-        auto [i, j, currentAlignmentA, currentAlignmentB] = stk.top();
-        stk.pop();
+    if (i > 0 && j > 0 && scoreTable[i][j] == scoreTable[i - 1][j - 1] + ((a[i - 1] == b[j - 1]) ? 1 : -1)) {
+        traceback(scoreTable, a, b, i - 1, j - 1, currentAlignmentA + a[i - 1], currentAlignmentB + b[j - 1], alignments);
+    }
 
-        if (i == 0 && j == 0) {
-            std::string finalAlignmentA = currentAlignmentA;
-            std::string finalAlignmentB = currentAlignmentB;
-            std::reverse(finalAlignmentA.begin(), finalAlignmentA.end());
-            std::reverse(finalAlignmentB.begin(), finalAlignmentB.end());
-            alignments.push_back({finalAlignmentA, finalAlignmentB});
-            continue;
-        }
+    if (i > 0 && scoreTable[i][j] == scoreTable[i - 1][j] - 2) {
+        traceback(scoreTable, a, b, i - 1, j, currentAlignmentA + a[i - 1], currentAlignmentB + "-", alignments);
+    }
 
-        if (i > 0 && j > 0 && scoreTable[i][j] == scoreTable[i - 1][j - 1] + ((a[i - 1] == b[j - 1]) ? 1 : -1)) {
-            stk.push(std::make_tuple(i - 1, j - 1, currentAlignmentA + a[i - 1], currentAlignmentB + b[j - 1]));
-        }
-
-        if (i > 0 && scoreTable[i][j] == scoreTable[i - 1][j] - 2) {
-            stk.push(std::make_tuple(i - 1, j, currentAlignmentA + a[i - 1], currentAlignmentB + "-"));
-        }
-
-        if (j > 0 && scoreTable[i][j] == scoreTable[i][j - 1] - 2) {
-            stk.push(std::make_tuple(i, j - 1, currentAlignmentA + "-", currentAlignmentB + b[j - 1]));
-        }
+    if (j > 0 && scoreTable[i][j] == scoreTable[i][j - 1] - 2) {
+        traceback(scoreTable, a, b, i, j - 1, currentAlignmentA + "-", currentAlignmentB + b[j - 1], alignments);
     }
 }
 
@@ -138,7 +127,7 @@ getAlignmentCount(const std::string& a, const std::string& b, bool bPrinting) {
 
 
     std::vector<std::pair<std::string, std::string>> alignments;
-    traceback(scoreTable, a, b, aSize - 1, bSize - 1, alignments);
+    traceback(scoreTable, a, b, aSize - 1, bSize - 1, "", "", alignments);
 
     if (bPrinting) {
         printTable(scoreTable);
