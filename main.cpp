@@ -6,16 +6,16 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <functional>
 #include <omp.h>
 
-#define MAX_SEQ_LENGTH 1100
+int 
+minu(int a, int b) 
+{  
+    return (a < b) ? a : b;  
+} 
 
-inline int max(int a, int b) {
-    return (a > b) ? a : b;
-}
-
-void readSequencesFromFile(const char *filename, std::vector<std::string>& sequences) {
+void 
+readSequencesFromFile(const char *filename, std::vector<std::string>& sequences) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         std::cerr << "Error: Cannot open file." << std::endl;
@@ -48,52 +48,81 @@ void readSequencesFromFile(const char *filename, std::vector<std::string>& seque
     fclose(file);
 }
 
-int getAlignmentCount(const std::string& a, const std::string& b) {
+void 
+traceBack(const std::vector<std::vector<int>>& scoreTable, const std::vector<std::vector<char>>& arrowTable, const std::string& a, const std::string& b, int i, int j, std::string currentA, std::string currentB, int &count) {
+    if (i == 0 && j == 0) {
+        std::cout << "Alignment " << ++count << ":\n";
+        std::cout << currentA << "\n" << currentB << "\n\n";
+        return;
+    }
+
+    if (arrowTable[i][j] == 'D' || arrowTable[i][j] == 'X') {
+        traceBack(scoreTable, arrowTable, a, b, i - 1, j - 1, a[i - 1] + currentA, b[j - 1] + currentB, count);
+    }
+    if (arrowTable[i][j] == 'U' || arrowTable[i][j] == 'X') {
+        traceBack(scoreTable, arrowTable, a, b, i - 1, j, a[i - 1] + currentA, "-" + currentB, count);
+    }
+    if (arrowTable[i][j] == 'L' || arrowTable[i][j] == 'X') {
+        traceBack(scoreTable, arrowTable, a, b, i, j - 1, "-" + currentA, b[j - 1] + currentB, count);
+    }
+}
+
+int
+getAlignmentCount(const std::string& a, const std::string& b) {
     int aSize = a.length() + 1;
     int bSize = b.length() + 1;
 
     std::vector<std::vector<int>> scoreTable(aSize, std::vector<int>(bSize, 0));
+    std::vector<std::vector<char>> arrowTable(aSize, std::vector<char>(bSize, ' '));
 
-    #pragma omp parallel for
     for (int i = 0; i < aSize; i++) {
         scoreTable[i][0] = i * (-2);
+        arrowTable[i][0] = 'U';
     }
 
-    #pragma omp parallel for
-    for (int j = 1; j < bSize; j++) {
+    for (int j = 0; j < bSize; j++) {
         scoreTable[0][j] = j * (-2);
+        arrowTable[0][j] = 'L';
     }
 
-    #pragma omp parallel for collapse(2)
-    for (int i = 1; i < aSize; i++) {
-        for (int j = 1; j < bSize; j++) {
-            int matchScore = a[i - 1] == b[j - 1] ? 1 : -1;
+    int x = aSize - 1;
+    int y = bSize - 1;
+
+    for (int line = 1; line <= (x + y - 1); line++) { 
+        int start_j = std::max(0, line - x); 
+        int count = std::min(line, std::min((y - start_j), x)); 
+
+        for(int k = 0; k < count; k++) {
+            int i = std::min(x, line) - k - 1;
+            int j = start_j + k;
+
+            if (i == 0 || j == 0) continue;
+
+            int matchScore = (a[i - 1] == b[j - 1]) ? 1 : -1;
             int diag = scoreTable[i - 1][j - 1] + matchScore;
             int up = scoreTable[i - 1][j] - 2;
             int left = scoreTable[i][j - 1] - 2;
-            scoreTable[i][j] = max(max(diag, left), up);
+
+            int maxScore = std::max({diag, up, left});
+            scoreTable[i][j] = maxScore;
+
+            if (diag == maxScore) {
+                arrowTable[i][j] = 'D';
+            }
+            if (up == maxScore) {
+                if (arrowTable[i][j] == 'D') arrowTable[i][j] = 'X';
+                else arrowTable[i][j] = 'U';
+            }
+            if (left == maxScore) {
+                if (arrowTable[i][j] == 'D' || arrowTable[i][j] == 'U') arrowTable[i][j] = 'X';
+                else arrowTable[i][j] = 'L';
+            }
         }
     }
 
-    std::function<int(int, int)> countAlignments = [&](int i, int j) -> int {
-        if (i == 0 && j == 0) return 1;
-        
-        int count = 0;
-        int matchScore = (i > 0 && j > 0 && a[i - 1] == b[j - 1]) ? 1 : -1;
-
-        if (i > 0 && j > 0 && scoreTable[i][j] == scoreTable[i - 1][j - 1] + matchScore) {
-            count += countAlignments(i - 1, j - 1);
-        }
-        if (i > 0 && scoreTable[i][j] == scoreTable[i - 1][j] - 2) {
-            count += countAlignments(i - 1, j);
-        }
-        if (j > 0 && scoreTable[i][j] == scoreTable[i][j - 1] - 2) {
-            count += countAlignments(i, j - 1);
-        }
-        return count;
-    };
-
-    return countAlignments(aSize - 1, bSize - 1);
+    int count = 0;
+    traceBack(scoreTable, arrowTable, a, b, x, y, "", "", count);
+    return count;
 }
 
 int main(int argc, char *argv[]) {
@@ -109,6 +138,12 @@ int main(int argc, char *argv[]) {
         std::cerr << "Error: At least two sequences are required." << std::endl;
         return 1;
     }
+
+    std::cout << "Sample AAAC and AGC: " << getAlignmentCount("AAAC", "AGC") << std::endl;
+    
+    std::cout << "Bacteria: " << sequences[0].size() << std::endl;
+    std::cout << "Sars-Cov: " << sequences[1].size() << std::endl;
+    std::cout << "Influenza: " << sequences[2].size() << std::endl;
 
     double start = omp_get_wtime();
     int alignmentCount = getAlignmentCount(sequences[0], sequences[1]);

@@ -1,0 +1,59 @@
+\documentclass{article}
+\usepackage[spanish]{babel}
+\usepackage{hyperref}
+\usepackage{graphicx}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=blue,      
+    urlcolor=blue,
+    pdftitle={Overleaf Example},
+    pdfpagemode=FullScreen,
+    }
+
+\title{Laboratorio 01a: Neddleman-Wunsch}
+\author{Frank Roger Salas Ticona}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Introducción}
+El algoritmo de Needleman-Wunsch es un método fundamental en bioinformática para alinear secuencias biológicas, como proteínas o ADN. Este trabajo presenta la implementación en C++ de este algoritmo, su evaluación en diferentes conjuntos de datos y un análisis de los resultados obtenidos. Se explorarán además algunas técnicas de visualización y se discutirán las mejoras propuestas en la literatura.
+
+\section{Implementación}
+\href{https://github.com/DaereanLegrand/Neddleman-Wunsch.git}{link}
+
+\section{Resultados}
+\subsection{Experimentos}
+
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{|l|c|c|c|}
+        \hline
+        Par de secuencias & Tamaño (aa) & Tiempo (s) & Soluciones óptimas \\
+        \hline
+    \end{tabular}
+    \caption{Resumen de los resultados obtenidos.}
+    \label{tab:resultados}
+\end{table}
+
+\subsection{Criterio de menos rupturas}
+
+\subsection{Visualización}
+\begin{figure}[ht]
+    \centering
+    %\includegraphics[width=0.8\textwidth]{matriz_puntos.png}
+    \caption{Ejemplo de matriz de puntos para el alineamiento de dos secuencias.}
+    \label{fig:matriz_puntos}
+\end{figure}
+
+\section{Análisis y Discusión}
+
+\section{Conclusiones}
+
+\bibliographystyle{plain}
+\bibliography{bibliografia}
+
+\end{document}
